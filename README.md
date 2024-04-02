@@ -1,4 +1,4 @@
-# **Predictive Business Process Monitoring based on History-informed Graph using Graph Convolutional Network**
+# **HiGPP: A History-informed Graph-based Process Predictor for Next Activity using Graph Convolutional Network**
 
 This repository contains the source code and related files for the paper titled "Predictive Business Process Monitoring based on History-informed Graph using Graph Convolutional Network". The datasets are located in the raw_dir/three_fold_data directory.
 
