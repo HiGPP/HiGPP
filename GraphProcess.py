@@ -22,8 +22,6 @@ def edges_process(event_log):
     edges_raw = pd.concat(groupProcessList)
     edges_raw.rename(columns={"activity": "source",
                               "activity:next": "destination"}, inplace=True)
-    edges_raw['source'] = edges_raw['source'].astype(int)
-    edges_raw['destination'] = edges_raw['destination'].astype(int)
     return edges_raw
 
 def add_attribute_process(event_log):
@@ -40,20 +38,21 @@ def save_edges_feature(raw, type, f):
     for col in raw.columns.tolist():
         if col == "case":
             continue
-        else:
-            sequence = raw.groupby("case", sort=False).agg({col: lambda x: list(x)})
-            if col == "destination":
-                list_seq, list_label, list_len = get_prefix_sequence_label(sequence)
-                with open("raw_dir/"+ event_name + "/" + event_name + "_kfoldcv_" + str(f) + "/" + type + '_' + col + ".npy", 'wb') as file:
-                    pickle.dump(list_seq, file)
-                with open("raw_dir/"+ event_name + "/" + event_name + "_kfoldcv_" + str(f) + "/" + type + '_' + "label" + ".npy", 'wb') as file:
-                    pickle.dump(list_label, file)
-                with open("raw_dir/"+ event_name + "/" + event_name + "_kfoldcv_" + str(f) + "/" + type + '_' + "len" + ".npy", 'wb') as file:
-                    pickle.dump(list_len, file)
-            else:
-                list_seq = get_prefix_sequence(sequence)
-                with open("raw_dir/"+ event_name + "/" + event_name + "_kfoldcv_" + str(f) + "/" + type + '_' + col + ".npy", 'wb') as file:
-                    pickle.dump(list_seq, file)
+        sequence = raw.groupby("case", sort=False).agg({col: lambda x: list(x)})
+        if col == 'source':
+            list_seq_source = get_prefix_sequence(sequence)
+            with open("raw_dir/" + event_name + "/" + event_name + "_kfoldcv_" + str(
+                    f) + "/" + type + '_' + col + ".npy", 'wb') as file:
+                pickle.dump(list_seq_source, file)
+        elif col == "destination":
+            list_seq_target, list_label, list_len = get_prefix_sequence_label(sequence)
+            with open("raw_dir/"+ event_name + "/" + event_name + "_kfoldcv_" + str(f) + "/" + type + '_' + col + ".npy", 'wb') as file:
+                pickle.dump(list_seq_target, file)
+            with open("raw_dir/"+ event_name + "/" + event_name + "_kfoldcv_" + str(f) + "/" + type + '_' + "label" + ".npy", 'wb') as file:
+                pickle.dump(list_label, file)
+            with open("raw_dir/"+ event_name + "/" + event_name + "_kfoldcv_" + str(f) + "/" + type + '_' + "len" + ".npy", 'wb') as file:
+                pickle.dump(list_len, file)
+
 
 
 def save_node_feature(nodes_raw, type, f):
@@ -68,9 +67,8 @@ def save_node_feature(nodes_raw, type, f):
     new_source_lists = []
     new_destination_lists = []
     for groupId, group in nodes_raw.groupby('case', sort=False):
-        i = 0
-        while i < len(group) - 1:
-            i = i + 1
+        i = 1
+        while i < len(group):
             group_temp = group[:i]
             unique_values = group_temp['activity'].drop_duplicates(keep='last')
             df_activity = pd.DataFrame(unique_values)
@@ -84,6 +82,7 @@ def save_node_feature(nodes_raw, type, f):
             new_source_lists.append(source_list)
             destination_list = [encoding_map[value] for value in destination_lists[index]]
             new_destination_lists.append(destination_list)
+            i = i + 1
             index = index + 1
     with open("raw_dir/" + event_name + "/" + event_name + "_kfoldcv_" + str(
             f) + "/" + type + '_' + "new_source" + ".npy", 'wb') as file:
@@ -106,6 +105,7 @@ def save_node_feature(nodes_raw, type, f):
 if __name__ == '__main__':
     event_name = args.dataset
     for f in tqdm(range(3), desc="Processing fold"):
+        np.random.seed(133)
         df_train = pd.read_csv("raw_dir/three_fold_data/" + event_name + "/" + event_name + "_kfoldcv_" + str(f) + "_train.csv",
                                sep=',',
                                header=0, index_col=False)
@@ -113,7 +113,7 @@ if __name__ == '__main__':
                               sep=',',
                               header=0, index_col=False)
 
-        np.random.seed(133)
+
 
         grouped = df_train.groupby('case')
         new_order = np.random.permutation(list(grouped.groups.keys()))
