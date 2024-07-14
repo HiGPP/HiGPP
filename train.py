@@ -7,6 +7,7 @@ from Dataset import BPICDataset
 from dgl.dataloading import GraphDataLoader
 from model.model import SAGEVirtualNodeClassifier
 import copy
+import numpy as np
 import os
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
