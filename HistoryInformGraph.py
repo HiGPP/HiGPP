@@ -14,15 +14,16 @@ warnings.filterwarnings(action='ignore')  # 忽略警告
 
 
 class EventLogProcessor:
-    def __init__(self, event_name):
+    def __init__(self, event_name, fold):
         self.event_name = event_name
+        self.fold=fold
         self.data_dir = f"raw_dir/{self.event_name}"
         self.three_fold_dir = f"raw_dir/three_fold_data/{self.event_name}"
         self.feature_list = []
 
     def edges_process(self, event_log):
         group_process_list = []
-        for group_id, group in event_log.groupby('case', sort=False):
+        for group_id, group in tqdm(event_log.groupby('case', sort=False), desc='Processing Edges'):
             group = group.copy()
             group = pd.concat([group.iloc[0:1], group])
             group["activity:next"] = group["activity"]
@@ -36,7 +37,7 @@ class EventLogProcessor:
 
     def add_attribute_process(self, event_log):
         group_process_list = []
-        for group_id, group in event_log.groupby('case', sort=False):
+        for group_id, group in tqdm(event_log.groupby('case', sort=False), desc='Adding Attributes'):
             group = group.copy()
             group['occurrences'] = group.groupby("activity", sort=False).cumcount() + 1
             group['repeat'] = group['occurrences'].map(lambda x: 2 if x > 1 else 1)
@@ -105,12 +106,11 @@ class EventLogProcessor:
             return pickle.load(file)
 
     def process_data(self):
-        for fold in tqdm(range(3), desc="Processing fold"):
-            train_df, val_df, test_df = self.prepare_datasets(fold)
-            train_df, val_df, test_df = self.process_timestamps(train_df, val_df, test_df)
-            self.discretize_and_encode(train_df, val_df, test_df, fold)
-            self.process_and_save_edges(train_df, val_df, test_df, fold)
-            self.process_and_save_nodes_feature(train_df, val_df, test_df, fold)
+        train_df, val_df, test_df = self.prepare_datasets(self.fold)
+        train_df, val_df, test_df = self.process_timestamps(train_df, val_df, test_df)
+        self.discretize_and_encode(train_df, val_df, test_df, self.fold)
+        self.process_and_save_edges(train_df, val_df, test_df, self.fold)
+        self.process_and_save_nodes_feature(train_df, val_df, test_df, self.fold)
 
     def prepare_datasets(self, fold):
         df_train = pd.read_csv(f"{self.three_fold_dir}/{self.event_name}_kfoldcv_{fold}_train.csv", sep=',', header=0, index_col=False)
@@ -190,6 +190,7 @@ class EventLogProcessor:
         self.save_edges_feature(train_edges_raw, "train", fold)
         self.save_edges_feature(val_edges_raw, "val", fold)
         self.save_edges_feature(test_edges_raw, "test", fold)
+        
 
     def process_and_save_nodes_feature(self, train_df, val_df, test_df, fold):
         train_nodes_raw = self.add_attribute_process(train_df)
@@ -213,5 +214,6 @@ class EventLogProcessor:
 
 if __name__ == '__main__':
     event_name = args.dataset
-    processor = EventLogProcessor(event_name=event_name)
+    fold = args.fold;
+    processor = EventLogProcessor(event_name=event_name, fold=fold)
     processor.process_data()
