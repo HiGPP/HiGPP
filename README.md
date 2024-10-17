@@ -7,7 +7,9 @@ This repository contains the source code and related files for the paper titled 
 - Specify the preprocessed event log for extracting graph information to create a History-informed Graph (example specifies the dataset as bpi13_problems)
 
   - ```
-    python3 HistoryInformGraph.py -d bpi13_problems
+    python3 HistoryInformGraph.py -d bpi13_problems --fold 0
+    python3 HistoryInformGraph.py -d bpi13_problems --fold 1
+    python3 HistoryInformGraph.py -d bpi13_problems --fold 2
     ```
 
 - To train the model, run: (example specifies the dataset as bpi13_problems, fold is specified for three-fold cross-validation)
